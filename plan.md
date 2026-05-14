@@ -334,3 +334,157 @@ Pero siento que puede verse demasiado básico.
 
 Si solo tienes **48 horas y quieres minimizar riesgo**, escoge **Happy Computing**.
 Si tienes menos de 24 horas, entonces vete con **Kojo’s Kitchen**.
+---
+
+# IMPLEMENTACIÓN ACTUAL - Happy Computing
+
+## ✅ YA IMPLEMENTADO
+
+### Fase 1: Infraestructura Base
+- ✅ Estructura de directorios (src/, results/, tests/, informe/)
+- ✅ Generadores de variables aleatorias:
+  - `uniform(a, b)` → distribución uniforme
+  - `exponential(rate)` → exponencial con parámetro λ
+  - `normal_box_muller(mu, sigma)` → normal con Box-Muller
+  - `discrete(probs)` → variable discreta por probabilidades
+
+### Fase 2: Motor de Simulación
+- ✅ Clase `Event` → representa eventos con tiempo, tipo y payload
+- ✅ Clase `EventQueue` → cola de prioridad con heapq
+- ✅ Clase `Simulation` (base) → reloj, scheduling, loop principal
+
+### Fase 3: Modelado del Problema
+- ✅ Entidades: `Client`, `Seller`, `Technician`, `ServiceType`
+- ✅ Lógica principal en `HappyComputingSimulation`:
+  - Llegadas exponenciales (λ=1/20)
+  - Asignación a vendedores (2 vendedores, cola FIFO)
+  - Atención vendedor Normal(5,2)
+  - Ruteo a técnico normal o especializado según tipo de servicio
+  - Reparaciones exponenciales (λ=1/20 o λ=1/15)
+  - Cálculo de ganancias por tipo de servicio
+
+### Fase 4: Ejecución Básica
+- ✅ Script `main.py` con múltiples runs (100 simulaciones)
+- ✅ Estadísticas básicas: ganancia promedio ± desviación estándar
+
+**Estado**: La simulación **funciona y produce resultados coherentes**
+- Ganancia promedio: ~$5391 por jornada (8 horas)
+- Clientes atendidos: ~21 por jornada
+
+---
+
+## ❌ FALTA POR IMPLEMENTAR
+
+### OPCIÓN A: Mínimo para aprobación (4-5 horas)
+
+1. **Tests unitarios para generadores de v.a.** (1-2 horas)
+   - Verificar que exponential(20) tiene media ≈ 20
+   - Verificar que normal(5,2) produce N(5,2)
+   - Prueba Kolmogorov-Smirnov
+
+2. **Debug y validación** (1-2 horas)
+   - Verificar que: clientes_llegados == clientes_atendidos
+   - Revisar colas al final (¿hay clientes atrapados?)
+   - Validar tiempos (sin negativos)
+
+3. **Estadísticas mejoradas** (30 min)
+   - Agregar: min, max, mediana, percentiles, intervalo confianza 95%
+
+4. **Una visualización** (1 hora)
+   - Histograma de ganancias con media y desviación
+
+5. **Informe básico** (1-2 horas)
+   - Descripción del modelo
+   - Diagrama de flujo
+   - Resultados + gráfica
+
+### OPCIÓN B: Completo (8-12 horas - después de A)
+
+6. **Exportar datos a CSV** (1 hora)
+   - Por cliente: arrival_time, service_type, wait_time, departure_time, profit
+   - Resumen por run: run_number, total_profit, clients_served, avg_wait_time
+
+7. **Análisis de colas y recursos** (1-2 horas)
+   - Longitud promedio de cada cola
+   - Utilización de recursos (% de tiempo ocupado)
+   - Tiempo máximo en cola
+
+8. **Visualizaciones completas** (2-3 horas)
+   - Histograma de ganancias
+   - Boxplot de ganancias
+   - Evolución de colas a lo largo del tiempo
+   - Tiempos de espera vs. tiempo de llegada
+
+9. **Validación de distribuciones** (1-2 horas)
+   - Histogramas vs. teóricas
+   - Q-Q plots
+   - Verificar que las v.a. generadas coinciden con lo esperado
+
+10. **Análisis avanzado** (1-2 horas)
+    - Correlación entre tipo de servicio y tiempo de espera
+    - Análisis de sensibilidad (qué pasa con 1, 2, 3, 4 técnicos)
+
+11. **Informe completo en PDF** (2-3 horas)
+    - Con todas las gráficas
+    - Análisis estadístico
+    - Conclusiones
+
+---
+
+## 📋 ORDEN RECOMENDADO
+
+### Semana 1: OPCIÓN A (4-5 horas)
+
+```
+Lunes 15 mayo
+├─ 13:00-14:30: Tests unitarios para generadores
+├─ 14:30-16:00: Debug y validación de lógica
+└─ 16:00-16:30: Estadísticas mejoradas
+
+Martes 16 mayo
+├─ 09:00-10:00: Primera visualización (histograma)
+└─ 10:00-12:00: Informe básico PDF
+```
+
+**Entrega**: 12 mayo, con:
+- Código validado
+- 1 gráfica
+- Informe básico
+
+---
+
+### Semana 2: OPCIÓN B (8+ horas extra)
+
+```
+Miércoles 17 mayo
+├─ 09:00-10:00: Exportar datos a CSV
+├─ 10:00-11:00: Análisis de colas/recursos
+└─ 11:00-14:00: Visualizaciones completas (boxplot, evolución de colas)
+
+Jueves 18 mayo
+├─ 09:00-11:00: Validación de distribuciones
+├─ 11:00-12:00: Análisis avanzado (sensibilidad)
+└─ 13:00-16:00: Informe completo con todos los análisis
+```
+
+**Entrega final**: con análisis exhaustivo
+
+---
+
+## 🎯 CHECKLIST DE TAREAS
+
+### OPCIÓN A
+- [ ] 1. Crear tests/test_random_vars.py (pruebas unitarias)
+- [ ] 2. Implementar debug y validación de clientes
+- [ ] 3. Expandir stats.py con estadísticas completas
+- [ ] 4. Crear plots.py con funciones de visualización
+- [ ] 5. Generar histograma de ganancias
+- [ ] 6. Escribir informe básico en PDF
+
+### OPCIÓN B (después de A)
+- [ ] 7. Crear función para exportar a CSV
+- [ ] 8. Implementar análisis de colas y recursos
+- [ ] 9. Agregar visualizaciones adicionales (boxplot, evolución)
+- [ ] 10. Crear plots de validación de distribuciones
+- [ ] 11. Análisis de sensibilidad
+- [ ] 12. Informe completo con todos los análisis
