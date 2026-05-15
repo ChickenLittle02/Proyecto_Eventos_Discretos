@@ -13,9 +13,36 @@ except ImportError:
     print("Instala con: pip install reportlab")
     sys.exit(1)
 
+import os
 from happy_computing import HappyComputingSimulation
+from stats import Stats
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 from scipy import stats as scipy_stats
+
+
+def ensure_directory(path):
+    os.makedirs(path, exist_ok=True)
+
+
+def save_profit_convergence_plot(profits, output_path):
+    if not profits:
+        return
+
+    cumulative_mean = np.cumsum(profits) / np.arange(1, len(profits) + 1)
+    plt.figure(figsize=(8, 4.5))
+    plt.plot(cumulative_mean, marker='o', markersize=4, linewidth=1.5, label='Media acumulada de ganancia')
+    plt.axhline(cumulative_mean[-1], color='red', linestyle='--', label=f'Media final ${cumulative_mean[-1]:.2f}')
+    plt.title('Convergencia de la ganancia promedio por corrida')
+    plt.xlabel('Número de corrida')
+    plt.ylabel('Ganancia promedio acumulada ($)')
+    plt.grid(True, linestyle='--', alpha=0.3)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150)
+    plt.close()
 
 
 def generate_report(num_runs=100):
@@ -25,9 +52,14 @@ def generate_report(num_runs=100):
     print("GENERANDO INFORME PDF")
     print("=" * 70)
     print()
+
+    results_dir = os.path.join(os.path.dirname(__file__), '..', 'results')
+    informe_dir = os.path.join(os.path.dirname(__file__), '..', 'informe')
+    ensure_directory(results_dir)
+    ensure_directory(informe_dir)
     
     # Ejecutar simulaciones
-    print("Ejecutando 100 simulaciones...")
+    print(f"Ejecutando {num_runs} simulaciones...")
     profits = []
     clients_served = []
     all_stats = []
@@ -44,10 +76,21 @@ def generate_report(num_runs=100):
     
     print(f"  {num_runs}/{num_runs} completadas")
     print()
+
+    avg_waits = np.array([stats.get_wait_time_stats()['mean'] for stats in all_stats])
+    avg_total_times = np.array([stats.get_system_time_stats()['mean'] for stats in all_stats])
+
+    profit_summary = Stats.sample_summary(profits, confidence=0.95)
+    wait_summary = Stats.sample_summary(avg_waits.tolist(), confidence=0.95)
+    total_time_summary = Stats.sample_summary(avg_total_times.tolist(), confidence=0.95)
+
+    convergence_path = os.path.join(results_dir, 'multi_run_profit_convergence.png')
+    save_profit_convergence_plot(profits, convergence_path)
     
     # Crear documento
+    output_pdf = os.path.join(informe_dir, 'informe_happy_computing.pdf')
     doc = SimpleDocTemplate(
-        '/home/nebur02/Documents/3er Ano/2do SEMESTRE/Simulacion/Proyecto1_Eventos_Discretos/informe/informe_happy_computing.pdf',
+        output_pdf,
         pagesize=letter,
         topMargin=0.5*inch,
         bottomMargin=0.5*inch,
@@ -283,29 +326,57 @@ Llegada → Vendedor → (Técnico Ordinario si es reparación) → Fin<br/>
         ('GRID', (0, 0), (-1, -1), 1, colors.black)
     ]))
     story.append(table_service)
+    
+    story.append(Paragraph("4.4 Estadísticas Multi-Run", styles['Heading3']))
+    data_multi = [
+        ['Métrica', 'Media', 'Desv. Estándar', 'IC 95%'],
+        ['Ganancia promedio ($)', f'${profit_summary["mean"]:.2f}', f'${profit_summary["std"]:.2f}',
+         f'[${profit_summary["ci_low"]:.2f}, ${profit_summary["ci_high"]:.2f}]'],
+        ['Espera promedio (min)', f'{wait_summary["mean"]:.2f}', f'{wait_summary["std"]:.2f}',
+         f'[{wait_summary["ci_low"]:.2f}, {wait_summary["ci_high"]:.2f}]'],
+        ['Tiempo total promedio (min)', f'{total_time_summary["mean"]:.2f}', f'{total_time_summary["std"]:.2f}',
+         f'[{total_time_summary["ci_low"]:.2f}, {total_time_summary["ci_high"]:.2f}]'],
+    ]
+    table_multi = Table(data_multi, colWidths=[2.0*inch, 1.5*inch, 1.5*inch, 2.0*inch])
+    table_multi.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1f4788')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    story.append(table_multi)
     story.append(PageBreak())
     
     # ========== GRÁFICAS ==========
     story.append(Paragraph("5. VISUALIZACIONES", heading_style))
     
     story.append(Paragraph("5.1 Análisis de Ganancias", styles['Heading3']))
-    try:
-        img1 = Image('/home/nebur02/Documents/3er Ano/2do SEMESTRE/Simulacion/Proyecto1_Eventos_Discretos/results/happy_computing_analysis.png',
-                    width=6*inch, height=4.5*inch)
-        story.append(img1)
-    except:
+    image_path_1 = os.path.join(results_dir, 'happy_computing_analysis.png')
+    if os.path.exists(image_path_1):
+        story.append(Image(image_path_1, width=6*inch, height=4.5*inch))
+    else:
         story.append(Paragraph("(Imagen no disponible)", body_style))
     
     story.append(Spacer(1, 0.2*inch))
     story.append(PageBreak())
     
     story.append(Paragraph("5.2 Análisis por Tipo de Servicio", styles['Heading3']))
-    try:
-        img2 = Image('/home/nebur02/Documents/3er Ano/2do SEMESTRE/Simulacion/Proyecto1_Eventos_Discretos/results/service_type_analysis.png',
-                    width=6*inch, height=2.5*inch)
-        story.append(img2)
-    except:
+    image_path_2 = os.path.join(results_dir, 'service_type_analysis.png')
+    if os.path.exists(image_path_2):
+        story.append(Image(image_path_2, width=6*inch, height=2.5*inch))
+    else:
         story.append(Paragraph("(Imagen no disponible)", body_style))
+    
+    story.append(Spacer(1, 0.2*inch))
+    story.append(Paragraph("5.3 Convergencia de la Ganancia Promedio", styles['Heading3']))
+    if os.path.exists(convergence_path):
+        story.append(Image(convergence_path, width=6*inch, height=4.5*inch))
+    else:
+        story.append(Paragraph("(Imagen de convergencia no disponible)", body_style))
     
     story.append(PageBreak())
     
@@ -313,7 +384,7 @@ Llegada → Vendedor → (Técnico Ordinario si es reparación) → Fin<br/>
     story.append(Paragraph("6. CONCLUSIONES", heading_style))
     
     conclusion_text = f"""
-Basado en 100 simulaciones independientes del taller Happy Computing, se obtuvieron los siguientes resultados:<br/>
+Basado en {num_runs} simulaciones independientes del taller Happy Computing, se obtuvieron los siguientes resultados:<br/>
 <br/>
 <b>• Ganancia esperada:</b> ${mean_profit:.2f} por jornada de 8 horas, con intervalo de confianza al 95% 
 de [${ci_low:.2f}, ${ci_high:.2f}].<br/>
@@ -336,7 +407,7 @@ de recursos (vendedores, técnicos) para maximizar ganancias en diferentes escen
     # Construir PDF
     doc.build(story)
     
-    print(f"✓ Informe PDF generado: informe_happy_computing.pdf")
+    print(f"✓ Informe PDF generado: {output_pdf}")
     print("=" * 70)
 
 

@@ -52,6 +52,28 @@ python src/visualizations.py
 
 Esto generará gráficos de ganancias, distribución por tipo de servicio y análisis de colas/utilización.
 
+## Análisis multi-run
+
+Ejecutar el análisis multi-run con intervalo de confianza:
+
+```bash
+python src/multi_run.py
+```
+
+Esto generará:
+
+- `results/multi_run_summary.csv`
+
+Generar el informe PDF con análisis multi-run e intervalo de confianza:
+
+```bash
+python src/generate_report.py
+```
+
+Esto generará:
+
+- `informe/informe_happy_computing.pdf`
+
 ## Estructura del proyecto
 
 - src/: Código fuente

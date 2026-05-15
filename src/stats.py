@@ -111,6 +111,48 @@ class Stats:
             'specialized_queue': summarize(self.specialized_queue_lengths),
         }
     
+    @staticmethod
+    def compute_confidence_interval(sample_values, confidence=0.95):
+        """Calcula el intervalo de confianza para una muestra de valores."""
+        values = np.array(sample_values, dtype=float) if len(sample_values) else np.array([0.0])
+        n = len(values)
+        mean = np.mean(values)
+        if n < 2:
+            return mean, mean
+
+        std = np.std(values, ddof=1)
+        se = std / np.sqrt(n)
+
+        z_values = {
+            0.90: 1.645,
+            0.95: 1.96,
+            0.99: 2.575
+        }
+        z_critical = z_values.get(confidence, 1.96)
+        margin_of_error = z_critical * se
+
+        return mean - margin_of_error, mean + margin_of_error
+
+    @staticmethod
+    def sample_summary(sample_values, confidence=0.95):
+        """Retorna resumen estadístico de una muestra: media, varianza y CI."""
+        values = np.array(sample_values, dtype=float) if len(sample_values) else np.array([0.0])
+        n = len(values)
+        mean = np.mean(values)
+        std = np.std(values, ddof=1) if n > 1 else 0.0
+        var = std ** 2
+        ci_low, ci_high = Stats.compute_confidence_interval(values, confidence)
+
+        return {
+            'count': n,
+            'mean': mean,
+            'std': std,
+            'var': var,
+            'ci_low': ci_low,
+            'ci_high': ci_high,
+            'confidence': confidence
+        }
+    
     # ========== INTERVALO DE CONFIANZA ==========
     
     def get_profit_confidence_interval(self, confidence=0.95):
