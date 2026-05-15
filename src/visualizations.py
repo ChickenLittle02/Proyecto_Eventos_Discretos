@@ -23,6 +23,7 @@ def create_visualizations(num_runs=100):
     profits = []
     clients_served = []
     all_stats = []
+    run_seeds = []
     
     print("Ejecutando simulaciones...")
     for i in range(num_runs):
@@ -34,6 +35,7 @@ def create_visualizations(num_runs=100):
         profits.append(stats.total_profit)
         clients_served.append(stats.clients_served)
         all_stats.append(stats)
+        run_seeds.append(i)
     
     print(f"  {num_runs}/{num_runs} completadas")
     print()
@@ -223,11 +225,61 @@ def create_visualizations(num_runs=100):
         axes3[1].axis('off')
         axes3[1].text(0.5, 0.5, 'No hay datos de utilización disponibles', ha='center', va='center', fontsize=12)
 
-    fig3.tight_layout(rect=[0, 0, 1, 0.96])
+    fig3.subplots_adjust(top=0.90)
     output_path3 = os.path.join(results_dir, 'queue_utilization_analysis.png')
     fig3.savefig(output_path3, dpi=150, bbox_inches='tight')
     print(f"✓ Figura guardada: {output_path3}")
-    
+
+    if all_stats:
+        queue_peaks = [
+            max(
+                s.get_queue_statistics()['seller_queue']['max'],
+                s.get_queue_statistics()['technician_queue']['max'],
+                s.get_queue_statistics()['specialized_queue']['max']
+            )
+            for s in all_stats
+        ]
+        best_queue_idx = int(np.argmax(queue_peaks))
+        representative_stats = all_stats[best_queue_idx]
+
+        queue_series = representative_stats.get_queue_time_series()
+        if len(queue_series['times']) > 0:
+            fig4, ax4 = plt.subplots(figsize=(12, 5))
+            ax4.plot(queue_series['times'], queue_series['seller'], label='Cola vendedores', linewidth=1.5)
+            ax4.plot(queue_series['times'], queue_series['technician'], label='Cola técnicos', linewidth=1.5)
+            ax4.plot(queue_series['times'], queue_series['specialized'], label='Cola especializado', linewidth=1.5)
+            ax4.set_title('Evolución de las colas durante una corrida con mayor congestión', fontweight='bold')
+            ax4.set_xlabel('Tiempo de simulación (minutos)')
+            ax4.set_ylabel('Longitud de cola')
+            ax4.grid(alpha=0.3)
+            ax4.legend()
+            plt.tight_layout()
+
+            output_path4 = os.path.join(results_dir, 'queue_evolution_analysis.png')
+            fig4.savefig(output_path4, dpi=150, bbox_inches='tight')
+            print(f"✓ Figura guardada: {output_path4}")
+
+        wait_means = [s.get_wait_time_stats()['mean'] for s in all_stats]
+        best_wait_idx = int(np.argmax(wait_means))
+        representative_wait_stats = all_stats[best_wait_idx]
+
+        arrival_times = np.array(representative_wait_stats.client_arrival_times)
+        wait_times = np.array(representative_wait_stats.client_wait_times)
+        if len(arrival_times) > 0 and len(wait_times) > 0:
+            fig5, ax5 = plt.subplots(figsize=(12, 5))
+            ax5.scatter(arrival_times, wait_times, s=15, alpha=0.6, color='#2a7f62')
+            ax5.set_title('Tiempo de espera vs. tiempo de llegada (corrida con mayor espera media)', fontweight='bold')
+            ax5.set_xlabel('Tiempo de llegada (minutos)')
+            ax5.set_ylabel('Tiempo de espera (minutos)')
+            ax5.grid(alpha=0.3)
+            ax5.set_xlim(left=0)
+            ax5.set_ylim(bottom=0)
+            plt.tight_layout()
+
+            output_path5 = os.path.join(results_dir, 'wait_time_vs_arrival.png')
+            fig5.savefig(output_path5, dpi=150, bbox_inches='tight')
+            print(f"✓ Figura guardada: {output_path5}")
+
     print()
     print("=" * 70)
     print("✅ VISUALIZACIONES COMPLETADAS")

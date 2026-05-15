@@ -8,6 +8,7 @@ class Stats:
         self.seller_queue_lengths = []
         self.technician_queue_lengths = []
         self.specialized_queue_lengths = []
+        self.queue_observation_times = []
         
         # Nuevas métricas por cliente
         self.client_wait_times = []      # Tiempo que esperan los clientes
@@ -25,10 +26,11 @@ class Stats:
     def increment_clients(self):
         self.clients_served += 1
 
-    def record_queues(self, seller_q, tech_q, spec_q):
+    def record_queues(self, seller_q, tech_q, spec_q, current_time=None):
         self.seller_queue_lengths.append(len(seller_q))
         self.technician_queue_lengths.append(len(tech_q))
         self.specialized_queue_lengths.append(len(spec_q))
+        self.queue_observation_times.append(current_time if current_time is not None else 0)
     
     def record_client_metrics(self, arrival_time, departure_time, wait_time, service_time, total_time, service_type):
         """Registra métricas de un cliente específico"""
@@ -109,6 +111,14 @@ class Stats:
             'seller_queue': summarize(self.seller_queue_lengths),
             'technician_queue': summarize(self.technician_queue_lengths),
             'specialized_queue': summarize(self.specialized_queue_lengths),
+        }
+
+    def get_queue_time_series(self):
+        return {
+            'times': np.array(self.queue_observation_times),
+            'seller': np.array(self.seller_queue_lengths),
+            'technician': np.array(self.technician_queue_lengths),
+            'specialized': np.array(self.specialized_queue_lengths),
         }
     
     @staticmethod

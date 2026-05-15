@@ -42,7 +42,12 @@ class HappyComputingSimulation(Simulation):
         elif event.kind == 'SPECIALIZED_END':
             self.handle_specialized_end(event.payload)
 
-        self.stats.record_queues(self.seller_queue, self.technician_queue, self.specialized_queue)
+        self.stats.record_queues(
+            self.seller_queue,
+            self.technician_queue,
+            self.specialized_queue,
+            current_time=self.clock
+        )
 
     def handle_arrival(self):
         # Create client

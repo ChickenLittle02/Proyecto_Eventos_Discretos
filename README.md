@@ -41,16 +41,16 @@ Se comenzó la implementación de la opción B con:
   - `results/happy_computing_analysis.png`
   - `results/service_type_analysis.png`
   - `results/queue_utilization_analysis.png`
-
-## Uso de visualizaciones
-
-Ejecutar las visualizaciones:
+  - `results/queue_evolution_analysis.png`
+  - `results/wait_time_vs_arrival.png`
 
 ```bash
 python src/visualizations.py
 ```
 
-Esto generará gráficos de ganancias, distribución por tipo de servicio y análisis de colas/utilización.
+Esto generará gráficos de ganancias, distribución por tipo de servicio, análisis de colas/utilización, evolución de las colas en el tiempo y tiempo de espera vs. tiempo de llegada.
+
+Las gráficas de evolución de cola y espera toman una corrida representativa del conjunto de corridas, elegida por mayor congestión o mayor tiempo de espera medio, para mostrar mejor las variaciones.
 
 ## Análisis multi-run
 
@@ -73,6 +73,12 @@ python src/generate_report.py
 Esto generará:
 
 - `informe/informe_happy_computing.pdf`
+
+El informe PDF incluye una sección de consideraciones de ejecución y el enlace al repositorio GitHub.
+
+## Repositorio GitHub
+
+- https://github.com/ChickenLittle02/Proyecto_Eventos_Discretos
 
 ## Estructura del proyecto
 

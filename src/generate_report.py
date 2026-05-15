@@ -379,6 +379,16 @@ Llegada → Vendedor → (Técnico Ordinario si es reparación) → Fin<br/>
         story.append(Paragraph("(Imagen de convergencia no disponible)", body_style))
     
     story.append(PageBreak())
+
+    story.append(Paragraph("5.4 Consideraciones de Ejecución", styles['Heading3']))
+    execution_text = f"""
+La generación del informe se realizó con {num_runs} corridas independientes de 480 minutos cada una. Cada ejecución usa una semilla distinta para asegurar independencia y reproducibilidad de los escenarios generados.<br/>
+El análisis multi-run calcula medias muestrales, varianzas y el intervalo de confianza al 95% para la ganancia, el tiempo de espera promedio y el tiempo total promedio en el sistema.<br/>
+La gráfica de convergencia muestra cómo se estabiliza la estimación de ganancia promedio a medida que aumentan las corridas. Estos resultados permiten evaluar la calidad del estimador y la consistencia del modelo.<br/>
+El código fuente completo y la implementación están disponibles en GitHub: <a href="https://github.com/ChickenLittle02/Proyecto_Eventos_Discretos">https://github.com/ChickenLittle02/Proyecto_Eventos_Discretos</a>.
+    """
+    story.append(Paragraph(execution_text, body_style))
+    story.append(PageBreak())
     
     # ========== CONCLUSIONES ==========
     story.append(Paragraph("6. CONCLUSIONES", heading_style))
@@ -400,7 +410,9 @@ de los ingresos.<br/>
 seguido por reparaciones sin garantía (${profits_by_type[1]:.0f}).<br/>
 <br/>
 El modelo de simulación permite a la gerencia estimar ingresos y tomar decisiones sobre asignación 
-de recursos (vendedores, técnicos) para maximizar ganancias en diferentes escenarios.
+de recursos (vendedores, técnicos) para maximizar ganancias en diferentes escenarios.<br/>
+<br/>
+El informe y el código fuente están disponibles en GitHub: <a href="https://github.com/ChickenLittle02/Proyecto_Eventos_Discretos">https://github.com/ChickenLittle02/Proyecto_Eventos_Discretos</a>.
     """
     story.append(Paragraph(conclusion_text, body_style))
     
