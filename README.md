@@ -35,6 +35,8 @@ Se comenzó la implementación de la opción B con:
 - exportación de resumen de simulación a CSV
 - análisis de colas con estadísticas de longitud máxima y promedio
 - medición de utilización de recursos (vendedores, técnicos y técnico especializado)
+- validación de la estructura de métricas en `src/stats.py`, incluyendo tiempos de llegada/salida y tiempos de espera/servicio
+- ejecución de `src/main.py` para verificar la generación de `results/client_metrics.csv` y `results/summary_metrics.csv`
 
 ## Estructura del proyecto
 

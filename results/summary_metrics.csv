@@ -1,0 +1,15 @@
+metric,value
+total_profit,5500
+clients_served,17
+avg_wait_time,0.0
+avg_service_time,23.50764763080358
+avg_total_time,23.50764763080358
+seller_queue_mean,0.0
+seller_queue_max,0
+technician_queue_mean,0.0
+technician_queue_max,0
+specialized_queue_mean,0.0
+specialized_queue_max,0
+avg_seller_utilization,0.07752726296420072
+avg_technician_utilization,0.19682734768559504
+specialized_utilization,0.10279247287262247
