@@ -118,18 +118,36 @@ y recursos limitados.
     story.append(Paragraph("2. DESCRIPCIÓN DEL SISTEMA", heading_style))
     
     description_text = """
-<b>Recursos disponibles:</b><br/>
+<b>Happy Computing</b> es un taller de reparaciones electrónicas. Las actividades 
+realizadas son:
+<br/>
+1. Reparación por garantía (Gratis)
+2. Reparación fuera de garantía ($350)
+3. Cambio de equipo ($500)
+4. Venta de equipos reparados ($750)
+<br/><br/>
+El taller cuenta con tres tipos de empleados:
+<br/>
+• Vendedor<br/>
+• Técnico<br/>
+• Técnico especializado
+<br/><br/>
+Cuando un cliente llega, primero es atendido por un vendedor. Si el servicio 
+requiere reparación (tipo 1 o 2), el cliente luego debe ser atendido por un técnico. 
+Si el servicio es un cambio de equipo (tipo 3), el cliente debe ser atendido por un 
+técnico especializado. Si todos los empleados que pueden atender al cliente están 
+ocupados, se establece una cola para su servicio.
+<br/><br/>
+Un técnico especializado solo realizará reparaciones si no hay ningún cliente que 
+desee un cambio de equipo en la cola.
+<br/><br/>
+La simulación considera el siguiente escenario:
+<br/>
 • 2 vendedores<br/>
-• 3 técnicos reparadores<br/>
-• 1 técnico especializado (cambios de equipo)<br/>
+• 3 técnicos<br/>
+• 1 técnico especializado
 <br/>
-<b>Tipos de servicio:</b><br/>
-• Reparación en garantía: sin costo ($0)<br/>
-• Reparación sin garantía: $350<br/>
-• Cambio de equipo: $500<br/>
-• Venta de equipos reparados: $750<br/>
-<br/>
-<b>Jornada de trabajo:</b> 8 horas (480 minutos)
+La jornada laboral se modela como una simulación de 8 horas (480 minutos).
     """
     story.append(Paragraph(description_text, body_style))
     story.append(Spacer(1, 0.1*inch))
@@ -138,18 +156,20 @@ y recursos limitados.
     story.append(Paragraph("3. MODELO DE SIMULACIÓN", heading_style))
     
     model_text = """
-<b>Generación de llegadas:</b> Variable aleatoria exponencial con media 20 minutos<br/>
-<b>Atención de vendedor:</b> Distribución normal N(5, 2) minutos<br/>
-<b>Reparación técnico:</b> Variable aleatoria exponencial con media 20 minutos<br/>
-<b>Cambio especializado:</b> Variable aleatoria exponencial con media 15 minutos<br/>
-<b>Tipo de servicio:</b> Distribución discreta<br/>
-    &nbsp;&nbsp;&nbsp;&nbsp;- 45% garantía<br/>
-    &nbsp;&nbsp;&nbsp;&nbsp;- 25% sin garantía<br/>
-    &nbsp;&nbsp;&nbsp;&nbsp;- 10% cambio de equipo<br/>
-    &nbsp;&nbsp;&nbsp;&nbsp;- 20% venta reparados<br/>
+<b>Generación de llegadas:</b> Se usa un proceso de Poisson con intervalo 
+de tiempo exponencial de media 20 minutos.<br/>
+<b>Tipo de servicio:</b> Probabilidades definidas como:<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;- Tipo 1 (Reparación garantía): 0.45<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;- Tipo 2 (Reparación fuera de garantía): 0.25<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;- Tipo 3 (Cambio de equipo): 0.10<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;- Tipo 4 (Venta de reparados): 0.20<br/>
+<b>Atención de vendedor:</b> Distribución normal N(5 min, 2 min).<br/>
+<b>Reparación por técnico:</b> Exponencial con media 20 minutos.<br/>
+<b>Cambio de equipo especializado:</b> Exponencial con media 15 minutos.<br/>
 <br/>
 <b>Flujo de cliente:</b><br/>
-Llegada → Vendedor → (Técnico o Fin) → Fin
+Llegada → Vendedor → (Técnico Ordinario si es reparación) → Fin<br/>
+                         → (Técnico Especializado si es cambio de equipo) → Fin
     """
     story.append(Paragraph(model_text, body_style))
     story.append(PageBreak())

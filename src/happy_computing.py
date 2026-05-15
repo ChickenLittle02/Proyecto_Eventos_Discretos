@@ -42,6 +42,8 @@ class HappyComputingSimulation(Simulation):
         elif event.kind == 'SPECIALIZED_END':
             self.handle_specialized_end(event.payload)
 
+        self.stats.record_queues(self.seller_queue, self.technician_queue, self.specialized_queue)
+
     def handle_arrival(self):
         # Create client
         service_type = ServiceType(self.random.discrete(self.service_probs))
@@ -66,9 +68,11 @@ class HappyComputingSimulation(Simulation):
             self.seller_queue.append(client)
 
     def start_seller_service(self, seller, client):
-        seller.busy = True
         seller.current_client = client
+        seller.start_service(self.clock)
+        client.wait_time_in_seller_queue = self.clock - client.arrival_time
         client.service_start_time = self.clock
+
         service_time = self.random.normal_box_muller(self.service_mu, self.service_sigma)
         self.schedule(service_time, 'SELLER_END', seller.id)
 
@@ -76,30 +80,27 @@ class HappyComputingSimulation(Simulation):
         seller = self.sellers[seller_id]
         client = seller.current_client
         client.departure_time = self.clock
-        
-        # Calcular métricas del cliente
-        wait_time = client.service_start_time - client.arrival_time
-        service_time = client.departure_time - client.service_start_time
-        total_time = client.departure_time - client.arrival_time
-        
-        # Solo registrar COMPLETAMENTE si es venta (no va a técnico)
+
+        seller.end_service(self.clock)
+        client.service_time_with_seller = client.departure_time - client.service_start_time
+        client.seller_end_time = self.clock
+
         if client.service_type == ServiceType.SALE_REPAIRED:
+            total_time = client.departure_time - client.arrival_time
             self.stats.add_profit(self.profits[client.service_type.value])
             self.stats.increment_clients()
-            self.stats.record_client_metrics(wait_time, service_time, total_time, client.service_type.value)
+            self.stats.record_client_metrics(
+                client.arrival_time,
+                client.departure_time,
+                client.wait_time_in_seller_queue,
+                client.service_time_with_seller,
+                total_time,
+                client.service_type.value
+            )
         else:
-            # Para reparaciones: solo guardar timestamps, se completará en técnico_end
-            client.wait_time_in_queue = wait_time
-            client.service_time_with_seller = service_time
-        
-        seller.busy = False
-        seller.current_client = None
-
-        # Check if client needs technician
-        if client.service_type in [ServiceType.REPAIR_WARRANTY, ServiceType.REPAIR_NO_WARRANTY]:
             self.assign_to_technician(client)
 
-        # Serve next in queue
+        seller.current_client = None
         if self.seller_queue:
             next_client = self.seller_queue.popleft()
             self.start_seller_service(seller, next_client)
@@ -112,8 +113,11 @@ class HappyComputingSimulation(Simulation):
             self.technician_queue.append(client)
 
     def start_technician_service(self, technician, client):
-        technician.busy = True
         technician.current_client = client
+        technician.start_service(self.clock)
+        client.wait_time_in_technician_queue = self.clock - client.seller_end_time
+        client.technician_start_time = self.clock
+
         service_time = self.random.exponential(self.repair_rate)
         self.schedule(service_time, 'TECHNICIAN_END', technician.id)
 
@@ -121,21 +125,26 @@ class HappyComputingSimulation(Simulation):
         technician = self.technicians[technician_id]
         client = technician.current_client
         client.departure_time = self.clock
-        
-        # Calcular métricas del cliente (incluyendo tiempo con vendedor)
+
+        technician.end_service(self.clock)
+        client.service_time_with_technician = client.departure_time - client.technician_start_time
+
         total_time = client.departure_time - client.arrival_time
-        wait_time = client.wait_time_in_queue  # Espera en vendedor
-        service_time = (client.departure_time - client.service_start_time)  # Tiempo del técnico
-        
-        # AHORA registramos la ganancia y el cliente completamente
+        total_wait = client.wait_time_in_seller_queue + client.wait_time_in_technician_queue
+        total_service_time = client.service_time_with_seller + client.service_time_with_technician
+
         self.stats.add_profit(self.profits[client.service_type.value])
         self.stats.increment_clients()
-        self.stats.record_client_metrics(wait_time, service_time, total_time, client.service_type.value)
-        
-        technician.busy = False
-        technician.current_client = None
+        self.stats.record_client_metrics(
+            client.arrival_time,
+            client.departure_time,
+            total_wait,
+            total_service_time,
+            total_time,
+            client.service_type.value
+        )
 
-        # Serve next
+        technician.current_client = None
         if self.technician_queue:
             next_client = self.technician_queue.popleft()
             self.start_technician_service(technician, next_client)
@@ -147,9 +156,11 @@ class HappyComputingSimulation(Simulation):
             self.specialized_queue.append(client)
 
     def start_specialized_service(self, technician, client):
-        technician.busy = True
         technician.current_client = client
-        client.service_start_time = self.clock  # Marcar inicio de atención (con especializado)
+        technician.start_service(self.clock)
+        client.wait_time_in_seller_queue = self.clock - client.arrival_time
+        client.service_start_time = self.clock
+
         service_time = self.random.exponential(self.change_rate)
         self.schedule(service_time, 'SPECIALIZED_END', technician.id)
 
@@ -157,25 +168,46 @@ class HappyComputingSimulation(Simulation):
         technician = self.specialized_technician
         client = technician.current_client
         client.departure_time = self.clock
-        
-        # Calcular métricas del cliente
-        wait_time = (client.service_start_time - client.arrival_time) if hasattr(client, 'service_start_time') and client.service_start_time else 0
-        service_time = client.departure_time - client.service_start_time
+
+        technician.end_service(self.clock)
+        client.service_time_with_technician = client.departure_time - client.service_start_time
+
         total_time = client.departure_time - client.arrival_time
-        
-        # Registrar en estadísticas
         self.stats.add_profit(self.profits[client.service_type.value])
         self.stats.increment_clients()
-        self.stats.record_client_metrics(wait_time, service_time, total_time, client.service_type.value)
-        
-        technician.busy = False
-        technician.current_client = None
+        self.stats.record_client_metrics(
+            client.arrival_time,
+            client.departure_time,
+            client.wait_time_in_seller_queue,
+            client.service_time_with_technician,
+            total_time,
+            client.service_type.value
+        )
 
-        # Serve next
+        technician.current_client = None
         if self.specialized_queue:
             next_client = self.specialized_queue.popleft()
             self.start_specialized_service(technician, next_client)
 
     def run_simulation(self, duration):
         self.run(duration)
+        for seller in self.sellers:
+            seller.finalize_busy_time(duration)
+        for technician in self.technicians:
+            technician.finalize_busy_time(duration)
+        self.specialized_technician.finalize_busy_time(duration)
         return self.stats
+
+    def get_resource_utilization(self, duration):
+        duration = max(duration, self.clock, 1.0)
+        seller_utilization = [seller.busy_time / duration for seller in self.sellers]
+        technician_utilization = [tech.busy_time / duration for tech in self.technicians]
+        specialized_utilization = self.specialized_technician.busy_time / duration
+
+        return {
+            'seller_utilization': seller_utilization,
+            'technician_utilization': technician_utilization,
+            'specialized_utilization': specialized_utilization,
+            'average_seller_utilization': sum(seller_utilization) / len(seller_utilization),
+            'average_technician_utilization': sum(technician_utilization) / len(technician_utilization),
+        }

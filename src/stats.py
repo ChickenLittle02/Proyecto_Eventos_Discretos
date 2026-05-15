@@ -15,6 +15,8 @@ class Stats:
         self.client_profits = []         # Ganancia generada por cada cliente
         self.client_service_types = []   # Tipo de servicio de cada cliente
         self.total_time_in_system = []   # Tiempo total desde llegada hasta salida
+        self.client_arrival_times = []   # Tiempo de llegada de cada cliente
+        self.client_departure_times = [] # Tiempo de salida de cada cliente
 
     def add_profit(self, amount):
         self.total_profit += amount
@@ -28,8 +30,10 @@ class Stats:
         self.technician_queue_lengths.append(len(tech_q))
         self.specialized_queue_lengths.append(len(spec_q))
     
-    def record_client_metrics(self, wait_time, service_time, total_time, service_type):
+    def record_client_metrics(self, arrival_time, departure_time, wait_time, service_time, total_time, service_type):
         """Registra métricas de un cliente específico"""
+        self.client_arrival_times.append(arrival_time)
+        self.client_departure_times.append(departure_time)
         self.client_wait_times.append(wait_time)
         self.client_service_times.append(service_time)
         self.total_time_in_system.append(total_time)
@@ -90,6 +94,23 @@ class Stats:
             'max': np.max(total_times),
         }
     
+    def get_queue_statistics(self):
+        """Retorna estadísticas de las longitudes de cola registradas"""
+        def summarize(lengths):
+            arr = np.array(lengths) if lengths else np.array([0])
+            return {
+                'mean': np.mean(arr),
+                'max': np.max(arr),
+                'median': np.median(arr),
+                'count': len(arr)
+            }
+
+        return {
+            'seller_queue': summarize(self.seller_queue_lengths),
+            'technician_queue': summarize(self.technician_queue_lengths),
+            'specialized_queue': summarize(self.specialized_queue_lengths),
+        }
+    
     # ========== INTERVALO DE CONFIANZA ==========
     
     def get_profit_confidence_interval(self, confidence=0.95):
@@ -105,10 +126,13 @@ class Stats:
         # Error estándar
         se = std / np.sqrt(n)
         
-        # Valor crítico (aproximación normal para n > 30)
-        from scipy import stats
-        alpha = 1 - confidence
-        z_critical = stats.norm.ppf(1 - alpha/2)
+        # Valor crítico simple para intervalos comunes
+        z_values = {
+            0.90: 1.645,
+            0.95: 1.96,
+            0.99: 2.575
+        }
+        z_critical = z_values.get(confidence, 1.96)
         
         margin_of_error = z_critical * se
         
@@ -182,6 +206,12 @@ class Stats:
         print(f"\n⏳ TIEMPO TOTAL EN SISTEMA:")
         print(f"  Promedio: {system_stats['mean']:.2f} min")
         print(f"  Rango: {system_stats['min']:.2f} - {system_stats['max']:.2f} min")
+        
+        queue_stats = self.get_queue_statistics()
+        print(f"\n📌 ESTADÍSTICAS DE COLAS:")
+        print(f"  Cola vendedores - promedio: {queue_stats['seller_queue']['mean']:.2f}, máximo: {queue_stats['seller_queue']['max']:.0f}")
+        print(f"  Cola técnicos - promedio: {queue_stats['technician_queue']['mean']:.2f}, máximo: {queue_stats['technician_queue']['max']:.0f}")
+        print(f"  Cola especializado - promedio: {queue_stats['specialized_queue']['mean']:.2f}, máximo: {queue_stats['specialized_queue']['max']:.0f}")
         
         print(f"\n📈 POR TIPO DE SERVICIO:")
         stats_by_type = self.get_stats_by_service_type()
