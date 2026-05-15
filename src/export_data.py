@@ -49,13 +49,21 @@ def export_summary(file_path, stats, utilization=None):
         writer.writerow(['avg_service_time', stats.get_service_time_stats()['mean']])
         writer.writerow(['avg_total_time', stats.get_system_time_stats()['mean']])
         writer.writerow(['seller_queue_mean', queue_stats['seller_queue']['mean']])
+        writer.writerow(['seller_queue_median', queue_stats['seller_queue']['median']])
         writer.writerow(['seller_queue_max', queue_stats['seller_queue']['max']])
         writer.writerow(['technician_queue_mean', queue_stats['technician_queue']['mean']])
+        writer.writerow(['technician_queue_median', queue_stats['technician_queue']['median']])
         writer.writerow(['technician_queue_max', queue_stats['technician_queue']['max']])
         writer.writerow(['specialized_queue_mean', queue_stats['specialized_queue']['mean']])
+        writer.writerow(['specialized_queue_median', queue_stats['specialized_queue']['median']])
         writer.writerow(['specialized_queue_max', queue_stats['specialized_queue']['max']])
+        writer.writerow(['queue_observations', queue_stats['seller_queue']['count']])
 
         if utilization is not None:
+            for idx, util in enumerate(utilization['seller_utilization']):
+                writer.writerow([f'seller_{idx+1}_utilization', util])
+            for idx, util in enumerate(utilization['technician_utilization']):
+                writer.writerow([f'technician_{idx+1}_utilization', util])
+            writer.writerow(['specialized_utilization', utilization['specialized_utilization']])
             writer.writerow(['avg_seller_utilization', utilization['average_seller_utilization']])
             writer.writerow(['avg_technician_utilization', utilization['average_technician_utilization']])
-            writer.writerow(['specialized_utilization', utilization['specialized_utilization']])

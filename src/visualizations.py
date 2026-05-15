@@ -1,4 +1,5 @@
 import sys
+import os
 sys.path.append('/home/nebur02/Documents/3er Ano/2do SEMESTRE/Simulacion/Proyecto1_Eventos_Discretos/src')
 
 from happy_computing import HappyComputingSimulation
@@ -114,9 +115,11 @@ def create_visualizations(num_runs=100):
             family='monospace', bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.5))
     
     plt.tight_layout()
-    
-    # Guardar figura
-    output_path = '/home/nebur02/Documents/3er Ano/2do SEMESTRE/Simulacion/Proyecto1_Eventos_Discretos/results/happy_computing_analysis.png'
+
+    results_dir = os.path.join(os.path.dirname(__file__), '..', 'results')
+    os.makedirs(results_dir, exist_ok=True)
+
+    output_path = os.path.join(results_dir, 'happy_computing_analysis.png')
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     print(f"✓ Figura guardada: {output_path}")
     
@@ -168,11 +171,62 @@ def create_visualizations(num_runs=100):
                 ha='center', va='bottom', fontweight='bold')
     
     plt.tight_layout()
-    
-    # Guardar figura 2
-    output_path2 = '/home/nebur02/Documents/3er Ano/2do SEMESTRE/Simulacion/Proyecto1_Eventos_Discretos/results/service_type_analysis.png'
+
+    output_path2 = os.path.join(results_dir, 'service_type_analysis.png')
     plt.savefig(output_path2, dpi=150, bbox_inches='tight')
     print(f"✓ Figura guardada: {output_path2}")
+
+    # ========== Gráfica 3: Comparativa de colas y utilización ==========
+    fig3, axes3 = plt.subplots(1, 2, figsize=(14, 5))
+    fig3.suptitle('Colas y Utilización de Recursos - 100 Runs', fontsize=16, fontweight='bold')
+
+    seller_queue_means = [s.get_queue_statistics()['seller_queue']['mean'] for s in all_stats]
+    technician_queue_means = [s.get_queue_statistics()['technician_queue']['mean'] for s in all_stats]
+    specialized_queue_means = [s.get_queue_statistics()['specialized_queue']['mean'] for s in all_stats]
+
+    queue_labels = ['Vendedores', 'Técnicos', 'Especializado']
+    queue_means = [
+        np.mean(seller_queue_means),
+        np.mean(technician_queue_means),
+        np.mean(specialized_queue_means)
+    ]
+
+    ax = axes3[0]
+    bars = ax.bar(queue_labels, queue_means, color=['#4c72b0', '#55a868', '#c44e52'], edgecolor='black')
+    ax.set_ylabel('Longitud media de cola', fontsize=10)
+    ax.set_title('Cola promedio por tipo de servicio', fontweight='bold')
+    ax.grid(axis='y', alpha=0.3)
+    for bar in bars:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width() / 2, height + 0.05, f'{height:.2f}', ha='center', va='bottom')
+
+    if hasattr(all_stats[0], 'resource_utilization'):
+        seller_utils = [s.resource_utilization['average_seller_utilization'] for s in all_stats]
+        technician_utils = [s.resource_utilization['average_technician_utilization'] for s in all_stats]
+        specialized_utils = [s.resource_utilization['specialized_utilization'] for s in all_stats]
+
+        util_means = [
+            np.mean(seller_utils),
+            np.mean(technician_utils),
+            np.mean(specialized_utils)
+        ]
+
+        ax = axes3[1]
+        bars = ax.bar(queue_labels, util_means, color=['#8172b3', '#ccb974', '#64b5cd'], edgecolor='black')
+        ax.set_ylabel('Utilización promedio', fontsize=10)
+        ax.set_title('Utilización promedio de servidores', fontweight='bold')
+        ax.grid(axis='y', alpha=0.3)
+        for bar, util in zip(bars, util_means):
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width() / 2, height + 0.005, f'{height:.2%}', ha='center', va='bottom')
+    else:
+        axes3[1].axis('off')
+        axes3[1].text(0.5, 0.5, 'No hay datos de utilización disponibles', ha='center', va='center', fontsize=12)
+
+    fig3.tight_layout(rect=[0, 0, 1, 0.96])
+    output_path3 = os.path.join(results_dir, 'queue_utilization_analysis.png')
+    fig3.savefig(output_path3, dpi=150, bbox_inches='tight')
+    print(f"✓ Figura guardada: {output_path3}")
     
     print()
     print("=" * 70)

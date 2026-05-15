@@ -196,6 +196,10 @@ class HappyComputingSimulation(Simulation):
         for technician in self.technicians:
             technician.finalize_busy_time(duration)
         self.specialized_technician.finalize_busy_time(duration)
+
+        # Guardar datos de utilización en las estadísticas para análisis posterior
+        self.stats.resource_utilization = self.get_resource_utilization(duration)
+        self.stats.simulation_duration = duration
         return self.stats
 
     def get_resource_utilization(self, duration):
