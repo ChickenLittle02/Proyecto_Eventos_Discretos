@@ -1,26 +1,158 @@
-import sys
-sys.path.append('/home/nebur02/Documents/3er Ano/2do SEMESTRE/Simulacion/Proyecto1_Eventos_Discretos/src')
-
-try:
-    from reportlab.lib.pagesizes import letter, A4
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import inch
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, PageBreak, Table, TableStyle
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
-    from reportlab.lib import colors
-except ImportError:
-    print("Error: reportlab no está instalado")
-    print("Instala con: pip install reportlab")
-    sys.exit(1)
-
 import os
+import sys
+import shutil
+import subprocess
+import numpy as np
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ''))
 from happy_computing import HappyComputingSimulation
 from stats import Stats
-import numpy as np
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-from scipy import stats as scipy_stats
+
+
+TEX_TEMPLATE = r"""\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{xcolor}
+\title{Informe de Simulación - Happy Computing}
+\author{Rubén Martínez Rojas \\ Ciencias de la Computación \\ Grupo C-311}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section*{Datos del estudiante}
+\begin{itemize}
+  \item Estudiante: Rubén Martínez Rojas
+  \item Carrera: Ciencias de la Computación
+  \item Grupo: C-311
+  \item Tema Seleccionado: \#4 - Happy Computing
+  \item Orden del Problema: 4
+\end{itemize}
+
+\section{Introducción}
+Este informe presenta los resultados de una simulación de eventos discretos para el problema ``Happy Computing'', un taller de reparación y venta de equipos informáticos. El objetivo es estimar la ganancia esperada en una jornada laboral de 8 horas, considerando múltiples tipos de servicios y recursos limitados.
+
+\section{Descripción del sistema}
+Happy Computing es un taller de reparaciones electrónicas. Las actividades realizadas son:
+\begin{enumerate}
+  \item Reparación por garantía (Gratis)
+  \item Reparación fuera de garantía (\$350)
+  \item Cambio de equipo (\$500)
+  \item Venta de equipos reparados (\$750)
+\end{enumerate}
+
+El taller cuenta con tres tipos de empleados:
+\begin{itemize}
+  \item Vendedor
+  \item Técnico
+  \item Técnico especializado
+\end{itemize}
+
+Cuando un cliente llega, primero es atendido por un vendedor. Si el servicio requiere reparación (tipo 1 o 2), el cliente luego debe ser atendido por un técnico. Si el servicio es un cambio de equipo (tipo 3), el cliente debe ser atendido por un técnico especializado. Si todos los empleados que pueden atender al cliente están ocupados, se establece una cola para su servicio.
+
+Un técnico especializado solo realizará reparaciones si no hay ningún cliente que desee un cambio de equipo en la cola.
+
+El taller opera con:
+\begin{itemize}
+  \item 2 vendedores
+  \item 3 técnicos ordinarios
+  \item 1 técnico especializado
+\end{itemize}
+
+La jornada laboral se modela con una simulación de 8 horas (480 minutos).
+
+\section{Modelo de simulación}
+\begin{itemize}
+  \item Llegadas: proceso de Poisson con tiempo entre llegadas exponencial de media 20 minutos.
+  \item Tipo de servicio: probabilidades fijas por tipo.
+  \item Atención de vendedor: distribución normal N(5, 2).
+  \item Reparación por técnico ordinario: exponencial con media 20 minutos.
+  \item Cambio de equipo por técnico especializado: exponencial con media 15 minutos.
+\end{itemize}
+
+Flujo de cliente:
+\begin{itemize}
+  \item Llegada $\rightarrow$ Vendedor $\rightarrow$ Técnico (si reparación) $\rightarrow$ Fin
+  \item Llegada $\rightarrow$ Vendedor $\rightarrow$ Técnico especializado (si cambio de equipo) $\rightarrow$ Fin
+\end{itemize}
+
+\section{Resultados}
+\subsection{Resumen de ganancias}
+\begin{tabular}{lr}
+\toprule
+Métrica & Valor \\
+\midrule
+Promedio & \$ <<MEAN_PROFIT>> \\
+Desv. estándar & \$ <<STD_PROFIT>> \\
+IC 95\% & [\$ <<CI_LOW>> , \$ <<CI_HIGH>> ] \\
+Mínimo & \$ <<MIN_PROFIT>> \\
+Máximo & \$ <<MAX_PROFIT>> \\
+Mediana & \$ <<MEDIAN_PROFIT>> \\
+Q1 (25\%) & \$ <<Q1_PROFIT>> \\
+Q3 (75\%) & \$ <<Q3_PROFIT>> \\
+\bottomrule
+\end{tabular}
+
+\subsection{Clientes servidos}
+\begin{tabular}{lr}
+\toprule
+Métrica & Valor \\
+\midrule
+Promedio & <<MEAN_CLIENTS>> \\
+Desv. estándar & <<STD_CLIENTS>> \\
+Mínimo & <<MIN_CLIENTS>> \\
+Máximo & <<MAX_CLIENTS>> \\
+Mediana & <<MEDIAN_CLIENTS>> \\
+\bottomrule
+\end{tabular}
+
+\subsection{Análisis por tipo de servicio}
+\begin{tabular}{lrrr}
+\toprule
+Tipo de servicio & Clientes & Porcentaje & Ganancia \\
+\midrule
+Reparación Garantía & <<TYPE_COUNT_0>> & <<TYPE_PCT_0>>\% & \$ <<TYPE_PROFIT_0>> \\
+Reparación Sin Garantía & <<TYPE_COUNT_1>> & <<TYPE_PCT_1>>\% & \$ <<TYPE_PROFIT_1>> \\
+Cambio de Equipo & <<TYPE_COUNT_2>> & <<TYPE_PCT_2>>\% & \$ <<TYPE_PROFIT_2>> \\
+Venta de Reparados & <<TYPE_COUNT_3>> & <<TYPE_PCT_3>>\% & \$ <<TYPE_PROFIT_3>> \\
+\bottomrule
+\end{tabular}
+
+\subsection{Estadísticas multi-run}
+\begin{tabular}{lrrr}
+\toprule
+Métrica & Media & Desv. Est. & IC 95\% \\
+\midrule
+Ganancia promedio (\$) & \$ <<PROFIT_MEAN>> & \$ <<PROFIT_STD>> & [\$ <<PROFIT_CI_LOW>> , \$ <<PROFIT_CI_HIGH>> ] \\
+Espera promedio (min) & <<WAIT_MEAN>> & <<WAIT_STD>> & [<<WAIT_CI_LOW>> , <<WAIT_CI_HIGH>> ] \\
+Tiempo total promedio (min) & <<TOTAL_MEAN>> & <<TOTAL_STD>> & [<<TOTAL_CI_LOW>> , <<TOTAL_CI_HIGH>> ] \\
+\bottomrule
+\end{tabular}
+
+\section{Visualizaciones}
+<<FIGURES_SECTION>>
+
+\section{Consideraciones de ejecución}
+La generación del informe se realizó con <<NUM_RUNS>> corridas independientes de 480 minutos cada una. Cada ejecución usa una semilla distinta para asegurar independencia y reproducibilidad de los escenarios generados.
+
+El análisis multi-run calcula medias muestrales, varianzas y el intervalo de confianza al 95\% para la ganancia, el tiempo de espera promedio y el tiempo total promedio en el sistema.
+
+La gráfica de convergencia muestra cómo se estabiliza la estimación de la ganancia promedio a medida que aumentan las corridas.
+
+Código fuente disponible en \url{<<GITHUB_URL>>}.
+
+\section{Conclusiones}
+A partir de <<NUM_RUNS>> simulaciones, la ganancia promedio por jornada de 8 horas se estimó en \$ <<MEAN_PROFIT>> con un intervalo de confianza del 95\% de [\$ <<CI_LOW>> , \$ <<CI_HIGH>> ]. El modelo permite estimar mejor la asignación de vendedores y técnicos para gestionar colas y mejorar la eficiencia operativa.
+
+\end{document}
+"""
 
 
 def ensure_directory(path):
@@ -28,13 +160,16 @@ def ensure_directory(path):
 
 
 def save_profit_convergence_plot(profits, output_path):
-    if not profits:
+    if len(profits) == 0:
         return
-
     cumulative_mean = np.cumsum(profits) / np.arange(1, len(profits) + 1)
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
     plt.figure(figsize=(8, 4.5))
     plt.plot(cumulative_mean, marker='o', markersize=4, linewidth=1.5, label='Media acumulada de ganancia')
-    plt.axhline(cumulative_mean[-1], color='red', linestyle='--', label=f'Media final ${cumulative_mean[-1]:.2f}')
+    plt.axhline(cumulative_mean[-1], color='red', linestyle='--', label=f'Media final $ {cumulative_mean[-1]:.2f}')
     plt.title('Convergencia de la ganancia promedio por corrida')
     plt.xlabel('Número de corrida')
     plt.ylabel('Ganancia promedio acumulada ($)')
@@ -45,40 +180,85 @@ def save_profit_convergence_plot(profits, output_path):
     plt.close()
 
 
-def generate_report(num_runs=100):
-    """Genera un informe PDF con los resultados de la simulación"""
-    
-    print("=" * 70)
-    print("GENERANDO INFORME PDF")
-    print("=" * 70)
-    print()
+FIGURE_TEMPLATE = r"""
+\begin{{figure}}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{{{{{image_path}}}}}
+\caption{{{{{caption}}}}}
+\end{{figure}}
+"""
 
-    results_dir = os.path.join(os.path.dirname(__file__), '..', 'results')
-    informe_dir = os.path.join(os.path.dirname(__file__), '..', 'informe')
+
+def ensure_directory(path):
+    os.makedirs(path, exist_ok=True)
+
+
+def make_figure_block(image_path, caption):
+    return FIGURE_TEMPLATE.format(image_path=image_path, caption=caption)
+
+
+def write_latex_file(output_path, content):
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(content)
+
+
+def compile_latex(tex_path, working_dir):
+    command = ['pdflatex', '-interaction=batchmode', '-halt-on-error', os.path.basename(tex_path)]
+    result = subprocess.run(command, cwd=working_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return result.returncode == 0, result.stdout.decode('utf-8', errors='ignore') + result.stderr.decode('utf-8', errors='ignore')
+
+
+def generate_report(num_runs=100):
+    base_dir = os.path.dirname(__file__)
+    results_dir = os.path.abspath(os.path.join(base_dir, '..', 'results'))
+    informe_dir = os.path.abspath(os.path.join(base_dir, '..', 'informe'))
+
     ensure_directory(results_dir)
     ensure_directory(informe_dir)
-    
-    # Ejecutar simulaciones
-    print(f"Ejecutando {num_runs} simulaciones...")
+
+    print('=' * 70)
+    print('GENERANDO INFORME LaTeX')
+    print('=' * 70)
+
     profits = []
     clients_served = []
     all_stats = []
-    
+
+    print(f'Ejecutando {num_runs} simulaciones...')
     for i in range(num_runs):
         if (i + 1) % 25 == 0:
-            print(f"  {i + 1}/{num_runs}...")
-        
+            print(f'  {i + 1}/{num_runs}...')
         sim = HappyComputingSimulation(seed=i)
         stats = sim.run_simulation(480)
         profits.append(stats.total_profit)
         clients_served.append(stats.clients_served)
         all_stats.append(stats)
-    
-    print(f"  {num_runs}/{num_runs} completadas")
+
+    print(f'  {num_runs}/{num_runs} completadas')
     print()
 
-    avg_waits = np.array([stats.get_wait_time_stats()['mean'] for stats in all_stats])
-    avg_total_times = np.array([stats.get_system_time_stats()['mean'] for stats in all_stats])
+    profits_array = np.array(profits, dtype=float)
+    clients_array = np.array(clients_served, dtype=float)
+    mean_profit = float(np.mean(profits_array))
+    std_profit = float(np.std(profits_array, ddof=1)) if len(profits_array) > 1 else 0.0
+    min_profit = float(np.min(profits_array))
+    max_profit = float(np.max(profits_array))
+    median_profit = float(np.median(profits_array))
+    q1_profit = float(np.percentile(profits_array, 25))
+    q3_profit = float(np.percentile(profits_array, 75))
+    mean_clients = float(np.mean(clients_array))
+    std_clients = float(np.std(clients_array, ddof=1)) if len(clients_array) > 1 else 0.0
+    min_clients = float(np.min(clients_array))
+    max_clients = float(np.max(clients_array))
+    median_clients = float(np.median(clients_array))
+
+    se_profit = std_profit / np.sqrt(num_runs) if num_runs > 0 else 0.0
+    z_critical = 1.96
+    ci_low = mean_profit - z_critical * se_profit
+    ci_high = mean_profit + z_critical * se_profit
+
+    avg_waits = np.array([stats.get_wait_time_stats()['mean'] for stats in all_stats], dtype=float)
+    avg_total_times = np.array([stats.get_system_time_stats()['mean'] for stats in all_stats], dtype=float)
 
     profit_summary = Stats.sample_summary(profits, confidence=0.95)
     wait_summary = Stats.sample_summary(avg_waits.tolist(), confidence=0.95)
@@ -86,341 +266,109 @@ def generate_report(num_runs=100):
 
     convergence_path = os.path.join(results_dir, 'multi_run_profit_convergence.png')
     save_profit_convergence_plot(profits, convergence_path)
-    
-    # Crear documento
-    output_pdf = os.path.join(informe_dir, 'informe_happy_computing.pdf')
-    doc = SimpleDocTemplate(
-        output_pdf,
-        pagesize=letter,
-        topMargin=0.5*inch,
-        bottomMargin=0.5*inch,
-        leftMargin=0.75*inch,
-        rightMargin=0.75*inch
-    )
-    
-    story = []
-    styles = getSampleStyleSheet()
-    
-    # Estilos personalizados
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=24,
-        textColor=colors.HexColor('#1f4788'),
-        spaceAfter=12,
-        alignment=TA_CENTER,
-        fontName='Helvetica-Bold'
-    )
-    
-    heading_style = ParagraphStyle(
-        'CustomHeading',
-        parent=styles['Heading2'],
-        fontSize=14,
-        textColor=colors.HexColor('#1f4788'),
-        spaceAfter=6,
-        spaceBefore=12,
-        fontName='Helvetica-Bold'
-    )
-    
-    body_style = ParagraphStyle(
-        'CustomBody',
-        parent=styles['BodyText'],
-        fontSize=10,
-        alignment=TA_JUSTIFY,
-        spaceAfter=6
-    )
-    
-    # ========== TÍTULO ==========
-    story.append(Paragraph("INFORME DE SIMULACIÓN", title_style))
-    story.append(Paragraph("Proyecto #4: Happy Computing", styles['Heading2']))
-    story.append(Spacer(1, 0.1*inch))
-    
-    # Información del estudiante
-    student_info = """
-    <b>Estudiante:</b> Rubén Martínez Rojas<br/>
-    <b>Carrera:</b> Ciencias de la Computación<br/>
-    <b>Grupo:</b> C-311<br/>
-    <b>Tema Seleccionado:</b> #4 - Happy Computing<br/>
-    <b>Orden del Problema:</b> 4<br/>
-    """
-    story.append(Paragraph(student_info, body_style))
-    story.append(Spacer(1, 0.2*inch))
-    
-    # ========== INTRODUCCIÓN ==========
-    story.append(Paragraph("1. INTRODUCCIÓN", heading_style))
-    intro_text = """
-Este informe presenta los resultados de una simulación de eventos discretos para el problema 
-"Happy Computing", un taller de reparación y venta de equipos informáticos. El objetivo es estimar 
-la ganancia esperada en una jornada laboral de 8 horas, considerando múltiples tipos de servicios 
-y recursos limitados.
-    """
-    story.append(Paragraph(intro_text, body_style))
-    story.append(Spacer(1, 0.1*inch))
-    
-    # ========== DESCRIPCIÓN DEL SISTEMA ==========
-    story.append(Paragraph("2. DESCRIPCIÓN DEL SISTEMA", heading_style))
-    
-    description_text = """
-<b>Happy Computing</b> es un taller de reparaciones electrónicas. Las actividades 
-realizadas son:
-<br/>
-1. Reparación por garantía (Gratis)
-2. Reparación fuera de garantía ($350)
-3. Cambio de equipo ($500)
-4. Venta de equipos reparados ($750)
-<br/><br/>
-El taller cuenta con tres tipos de empleados:
-<br/>
-• Vendedor<br/>
-• Técnico<br/>
-• Técnico especializado
-<br/><br/>
-Cuando un cliente llega, primero es atendido por un vendedor. Si el servicio 
-requiere reparación (tipo 1 o 2), el cliente luego debe ser atendido por un técnico. 
-Si el servicio es un cambio de equipo (tipo 3), el cliente debe ser atendido por un 
-técnico especializado. Si todos los empleados que pueden atender al cliente están 
-ocupados, se establece una cola para su servicio.
-<br/><br/>
-Un técnico especializado solo realizará reparaciones si no hay ningún cliente que 
-desee un cambio de equipo en la cola.
-<br/><br/>
-La simulación considera el siguiente escenario:
-<br/>
-• 2 vendedores<br/>
-• 3 técnicos<br/>
-• 1 técnico especializado
-<br/>
-La jornada laboral se modela como una simulación de 8 horas (480 minutos).
-    """
-    story.append(Paragraph(description_text, body_style))
-    story.append(Spacer(1, 0.1*inch))
-    
-    # ========== MODELO DE SIMULACIÓN ==========
-    story.append(Paragraph("3. MODELO DE SIMULACIÓN", heading_style))
-    
-    model_text = """
-<b>Generación de llegadas:</b> Se usa un proceso de Poisson con intervalo 
-de tiempo exponencial de media 20 minutos.<br/>
-<b>Tipo de servicio:</b> Probabilidades definidas como:<br/>
-    &nbsp;&nbsp;&nbsp;&nbsp;- Tipo 1 (Reparación garantía): 0.45<br/>
-    &nbsp;&nbsp;&nbsp;&nbsp;- Tipo 2 (Reparación fuera de garantía): 0.25<br/>
-    &nbsp;&nbsp;&nbsp;&nbsp;- Tipo 3 (Cambio de equipo): 0.10<br/>
-    &nbsp;&nbsp;&nbsp;&nbsp;- Tipo 4 (Venta de reparados): 0.20<br/>
-<b>Atención de vendedor:</b> Distribución normal N(5 min, 2 min).<br/>
-<b>Reparación por técnico:</b> Exponencial con media 20 minutos.<br/>
-<b>Cambio de equipo especializado:</b> Exponencial con media 15 minutos.<br/>
-<br/>
-<b>Flujo de cliente:</b><br/>
-Llegada → Vendedor → (Técnico Ordinario si es reparación) → Fin<br/>
-                         → (Técnico Especializado si es cambio de equipo) → Fin
-    """
-    story.append(Paragraph(model_text, body_style))
-    story.append(PageBreak())
-    
-    # ========== RESULTADOS ==========
-    story.append(Paragraph("4. RESULTADOS", heading_style))
-    
-    profits_array = np.array(profits)
-    clients_array = np.array(clients_served)
-    mean_profit = np.mean(profits_array)
-    std_profit = np.std(profits_array, ddof=1)
-    se_profit = std_profit / np.sqrt(num_runs)
-    z_critical = scipy_stats.norm.ppf(0.975)
-    ci_low = mean_profit - z_critical * se_profit
-    ci_high = mean_profit + z_critical * se_profit
-    
-    story.append(Paragraph("4.1 Estadísticas de Ganancia", styles['Heading3']))
-    
-    # Tabla de ganancias
-    data_profit = [
-        ['Métrica', 'Valor'],
-        ['Promedio', f'${mean_profit:.2f}'],
-        ['Desv. Estándar', f'${std_profit:.2f}'],
-        ['IC 95%', f'[${ci_low:.2f}, ${ci_high:.2f}]'],
-        ['Mínimo', f'${np.min(profits):.2f}'],
-        ['Máximo', f'${np.max(profits):.2f}'],
-        ['Mediana', f'${np.median(profits):.2f}'],
-        ['Q1 (25%)', f'${np.percentile(profits, 25):.2f}'],
-        ['Q3 (75%)', f'${np.percentile(profits, 75):.2f}'],
-    ]
-    
-    table_profit = Table(data_profit, colWidths=[2.5*inch, 2.5*inch])
-    table_profit.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1f4788')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 11),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-    ]))
-    story.append(table_profit)
-    story.append(Spacer(1, 0.15*inch))
-    
-    story.append(Paragraph("4.2 Estadísticas de Clientes", styles['Heading3']))
-    
-    # Tabla de clientes
-    data_clients = [
-        ['Métrica', 'Valor'],
-        ['Promedio', f'{np.mean(clients_array):.1f}'],
-        ['Desv. Estándar', f'{np.std(clients_array, ddof=1):.2f}'],
-        ['Mínimo', f'{np.min(clients_served):.0f}'],
-        ['Máximo', f'{np.max(clients_served):.0f}'],
-        ['Mediana', f'{np.median(clients_served):.1f}'],
-    ]
-    
-    table_clients = Table(data_clients, colWidths=[2.5*inch, 2.5*inch])
-    table_clients.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1f4788')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 11),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-    ]))
-    story.append(table_clients)
-    story.append(Spacer(1, 0.15*inch))
-    
-    # ========== ANÁLISIS POR TIPO DE SERVICIO ==========
-    story.append(Paragraph("4.3 Distribución por Tipo de Servicio", styles['Heading3']))
-    
-    total_by_type = [0, 0, 0, 0]
-    profits_by_type = [0, 0, 0, 0]
-    
-    for stats_obj in all_stats:
-        stats_by_type = stats_obj.get_stats_by_service_type()
-        type_names = ['Reparación Garantía', 'Reparación Sin Garantía', 
-                     'Cambio de Equipo', 'Venta de Reparados']
-        
-        for idx, name in enumerate(type_names):
-            if name in stats_by_type:
-                total_by_type[idx] += stats_by_type[name]['count']
-                profits_by_type[idx] += stats_by_type[name]['total_profit']
-    
-    total_clients_all = sum(total_by_type)
-    
-    data_service = [
-        ['Tipo de Servicio', 'Clientes', '%', 'Ganancia'],
-        ['Reparación Garantía', f'{total_by_type[0]}', 
-         f'{100*total_by_type[0]/total_clients_all:.1f}%', f'${profits_by_type[0]:.0f}'],
-        ['Reparación Sin Garantía', f'{total_by_type[1]}', 
-         f'{100*total_by_type[1]/total_clients_all:.1f}%', f'${profits_by_type[1]:.0f}'],
-        ['Cambio de Equipo', f'{total_by_type[2]}', 
-         f'{100*total_by_type[2]/total_clients_all:.1f}%', f'${profits_by_type[2]:.0f}'],
-        ['Venta de Reparados', f'{total_by_type[3]}', 
-         f'{100*total_by_type[3]/total_clients_all:.1f}%', f'${profits_by_type[3]:.0f}'],
-    ]
-    
-    table_service = Table(data_service, colWidths=[2.0*inch, 1.2*inch, 1.0*inch, 1.3*inch])
-    table_service.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1f4788')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-    ]))
-    story.append(table_service)
-    
-    story.append(Paragraph("4.4 Estadísticas Multi-Run", styles['Heading3']))
-    data_multi = [
-        ['Métrica', 'Media', 'Desv. Estándar', 'IC 95%'],
-        ['Ganancia promedio ($)', f'${profit_summary["mean"]:.2f}', f'${profit_summary["std"]:.2f}',
-         f'[${profit_summary["ci_low"]:.2f}, ${profit_summary["ci_high"]:.2f}]'],
-        ['Espera promedio (min)', f'{wait_summary["mean"]:.2f}', f'{wait_summary["std"]:.2f}',
-         f'[{wait_summary["ci_low"]:.2f}, {wait_summary["ci_high"]:.2f}]'],
-        ['Tiempo total promedio (min)', f'{total_time_summary["mean"]:.2f}', f'{total_time_summary["std"]:.2f}',
-         f'[{total_time_summary["ci_low"]:.2f}, {total_time_summary["ci_high"]:.2f}]'],
-    ]
-    table_multi = Table(data_multi, colWidths=[2.0*inch, 1.5*inch, 1.5*inch, 2.0*inch])
-    table_multi.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1f4788')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-    ]))
-    story.append(table_multi)
-    story.append(PageBreak())
-    
-    # ========== GRÁFICAS ==========
-    story.append(Paragraph("5. VISUALIZACIONES", heading_style))
-    
-    story.append(Paragraph("5.1 Análisis de Ganancias", styles['Heading3']))
-    image_path_1 = os.path.join(results_dir, 'happy_computing_analysis.png')
-    if os.path.exists(image_path_1):
-        story.append(Image(image_path_1, width=6*inch, height=4.5*inch))
-    else:
-        story.append(Paragraph("(Imagen no disponible)", body_style))
-    
-    story.append(Spacer(1, 0.2*inch))
-    story.append(PageBreak())
-    
-    story.append(Paragraph("5.2 Análisis por Tipo de Servicio", styles['Heading3']))
-    image_path_2 = os.path.join(results_dir, 'service_type_analysis.png')
-    if os.path.exists(image_path_2):
-        story.append(Image(image_path_2, width=6*inch, height=2.5*inch))
-    else:
-        story.append(Paragraph("(Imagen no disponible)", body_style))
-    
-    story.append(Spacer(1, 0.2*inch))
-    story.append(Paragraph("5.3 Convergencia de la Ganancia Promedio", styles['Heading3']))
-    if os.path.exists(convergence_path):
-        story.append(Image(convergence_path, width=6*inch, height=4.5*inch))
-    else:
-        story.append(Paragraph("(Imagen de convergencia no disponible)", body_style))
-    
-    story.append(PageBreak())
 
-    story.append(Paragraph("5.4 Consideraciones de Ejecución", styles['Heading3']))
-    execution_text = f"""
-La generación del informe se realizó con {num_runs} corridas independientes de 480 minutos cada una. Cada ejecución usa una semilla distinta para asegurar independencia y reproducibilidad de los escenarios generados.<br/>
-El análisis multi-run calcula medias muestrales, varianzas y el intervalo de confianza al 95% para la ganancia, el tiempo de espera promedio y el tiempo total promedio en el sistema.<br/>
-La gráfica de convergencia muestra cómo se estabiliza la estimación de ganancia promedio a medida que aumentan las corridas. Estos resultados permiten evaluar la calidad del estimador y la consistencia del modelo.<br/>
-El código fuente completo y la implementación están disponibles en GitHub: <a href="https://github.com/ChickenLittle02/Proyecto_Eventos_Discretos">https://github.com/ChickenLittle02/Proyecto_Eventos_Discretos</a>.
-    """
-    story.append(Paragraph(execution_text, body_style))
-    story.append(PageBreak())
-    
-    # ========== CONCLUSIONES ==========
-    story.append(Paragraph("6. CONCLUSIONES", heading_style))
-    
-    conclusion_text = f"""
-Basado en {num_runs} simulaciones independientes del taller Happy Computing, se obtuvieron los siguientes resultados:<br/>
-<br/>
-<b>• Ganancia esperada:</b> ${mean_profit:.2f} por jornada de 8 horas, con intervalo de confianza al 95% 
-de [${ci_low:.2f}, ${ci_high:.2f}].<br/>
-<br/>
-<b>• Clientes servidos:</b> En promedio {np.mean(clients_array):.1f} clientes por jornada, con variabilidad 
-de {np.std(clients_array, ddof=1):.2f} clientes.<br/>
-<br/>
-<b>• Mix de servicios:</b> La mayoría de clientes ({100*total_by_type[0]/total_clients_all:.1f}%) 
-solicita reparación en garantía (sin costo), mientras que los servicios de pago generan la mayor parte 
-de los ingresos.<br/>
-<br/>
-<b>• Rentabilidad:</b> El servicio de "Venta de Reparados" es el más rentable (${profits_by_type[3]:.0f} total), 
-seguido por reparaciones sin garantía (${profits_by_type[1]:.0f}).<br/>
-<br/>
-El modelo de simulación permite a la gerencia estimar ingresos y tomar decisiones sobre asignación 
-de recursos (vendedores, técnicos) para maximizar ganancias en diferentes escenarios.<br/>
-<br/>
-El informe y el código fuente están disponibles en GitHub: <a href="https://github.com/ChickenLittle02/Proyecto_Eventos_Discretos">https://github.com/ChickenLittle02/Proyecto_Eventos_Discretos</a>.
-    """
-    story.append(Paragraph(conclusion_text, body_style))
-    
-    # Construir PDF
-    doc.build(story)
-    
-    print(f"✓ Informe PDF generado: {output_pdf}")
-    print("=" * 70)
+    image_files = [
+        'happy_computing_analysis.png',
+        'service_type_analysis.png',
+        'queue_evolution_analysis.png',
+        'wait_time_vs_arrival.png',
+        'multi_run_profit_convergence.png'
+    ]
+
+    for image in image_files:
+        source = os.path.join(results_dir, image)
+        destination = os.path.join(informe_dir, image)
+        if os.path.exists(source):
+            shutil.copy2(source, destination)
+
+    figure_definitions = [
+        (os.path.join(informe_dir, image_files[0]), 'Análisis global de ganancias y clientes.'),
+        (os.path.join(informe_dir, image_files[1]), 'Distribución por tipo de servicio.'),
+        (os.path.join(informe_dir, image_files[4]), 'Convergencia de la ganancia promedio en las corridas multi-run.'),
+        (os.path.join(informe_dir, image_files[2]), 'Evolución de las colas en una corrida representativa.'),
+        (os.path.join(informe_dir, image_files[3]), 'Tiempo de espera vs. tiempo de llegada en la corrida con mayor espera promedio.')
+    ]
+
+    figures_section = '\n'.join(
+        make_figure_block(os.path.basename(path), caption)
+        for path, caption in figure_definitions
+        if os.path.exists(path)
+    )
+
+    if not figures_section:
+        figures_section = 'No se encontraron imágenes de análisis para incluir en el informe.'
+
+    service_stats = {
+        'Reparación Garantía': {'count': 0, 'total_profit': 0.0},
+        'Reparación Sin Garantía': {'count': 0, 'total_profit': 0.0},
+        'Cambio de Equipo': {'count': 0, 'total_profit': 0.0},
+        'Venta de Reparados': {'count': 0, 'total_profit': 0.0}
+    }
+
+    for stats_obj in all_stats:
+        for key, value in stats_obj.get_stats_by_service_type().items():
+            service_stats[key]['count'] += value['count']
+            service_stats[key]['total_profit'] += value['total_profit']
+
+    total_clients_all = sum(v['count'] for v in service_stats.values())
+    type_counts = [service_stats[name]['count'] for name in service_stats]
+    type_profits = [service_stats[name]['total_profit'] for name in service_stats]
+    type_percentages = [100 * count / total_clients_all if total_clients_all > 0 else 0.0 for count in type_counts]
+
+    tex_content = (
+        TEX_TEMPLATE
+        .replace('<<FIGURES_SECTION>>', figures_section)
+        .replace('<<NUM_RUNS>>', str(num_runs))
+        .replace('<<GITHUB_URL>>', 'https://github.com/ChickenLittle02/Proyecto_Eventos_Discretos')
+        .replace('<<MEAN_PROFIT>>', f'{mean_profit:.2f}')
+        .replace('<<STD_PROFIT>>', f'{std_profit:.2f}')
+        .replace('<<CI_LOW>>', f'{ci_low:.2f}')
+        .replace('<<CI_HIGH>>', f'{ci_high:.2f}')
+        .replace('<<MIN_PROFIT>>', f'{min_profit:.2f}')
+        .replace('<<MAX_PROFIT>>', f'{max_profit:.2f}')
+        .replace('<<MEDIAN_PROFIT>>', f'{median_profit:.2f}')
+        .replace('<<Q1_PROFIT>>', f'{q1_profit:.2f}')
+        .replace('<<Q3_PROFIT>>', f'{q3_profit:.2f}')
+        .replace('<<MEAN_CLIENTS>>', f'{mean_clients:.1f}')
+        .replace('<<STD_CLIENTS>>', f'{std_clients:.2f}')
+        .replace('<<MIN_CLIENTS>>', f'{min_clients:.0f}')
+        .replace('<<MAX_CLIENTS>>', f'{max_clients:.0f}')
+        .replace('<<MEDIAN_CLIENTS>>', f'{median_clients:.1f}')
+        .replace('<<TYPE_COUNT_0>>', str(type_counts[0]))
+        .replace('<<TYPE_PCT_0>>', f'{type_percentages[0]:.1f}')
+        .replace('<<TYPE_PROFIT_0>>', f'{type_profits[0]:.0f}')
+        .replace('<<TYPE_COUNT_1>>', str(type_counts[1]))
+        .replace('<<TYPE_PCT_1>>', f'{type_percentages[1]:.1f}')
+        .replace('<<TYPE_PROFIT_1>>', f'{type_profits[1]:.0f}')
+        .replace('<<TYPE_COUNT_2>>', str(type_counts[2]))
+        .replace('<<TYPE_PCT_2>>', f'{type_percentages[2]:.1f}')
+        .replace('<<TYPE_PROFIT_2>>', f'{type_profits[2]:.0f}')
+        .replace('<<TYPE_COUNT_3>>', str(type_counts[3]))
+        .replace('<<TYPE_PCT_3>>', f'{type_percentages[3]:.1f}')
+        .replace('<<TYPE_PROFIT_3>>', f'{type_profits[3]:.0f}')
+        .replace('<<PROFIT_MEAN>>', f'{profit_summary["mean"]:.2f}')
+        .replace('<<PROFIT_STD>>', f'{profit_summary["std"]:.2f}')
+        .replace('<<PROFIT_CI_LOW>>', f'{profit_summary["ci_low"]:.2f}')
+        .replace('<<PROFIT_CI_HIGH>>', f'{profit_summary["ci_high"]:.2f}')
+        .replace('<<WAIT_MEAN>>', f'{wait_summary["mean"]:.2f}')
+        .replace('<<WAIT_STD>>', f'{wait_summary["std"]:.2f}')
+        .replace('<<WAIT_CI_LOW>>', f'{wait_summary["ci_low"]:.2f}')
+        .replace('<<WAIT_CI_HIGH>>', f'{wait_summary["ci_high"]:.2f}')
+        .replace('<<TOTAL_MEAN>>', f'{total_time_summary["mean"]:.2f}')
+        .replace('<<TOTAL_STD>>', f'{total_time_summary["std"]:.2f}')
+        .replace('<<TOTAL_CI_LOW>>', f'{total_time_summary["ci_low"]:.2f}')
+        .replace('<<TOTAL_CI_HIGH>>', f'{total_time_summary["ci_high"]:.2f}')
+    )
+
+    tex_file = os.path.join(informe_dir, 'informe_happy_computing.tex')
+    write_latex_file(tex_file, tex_content)
+
+    success, log = compile_latex(tex_file, informe_dir)
+    if success:
+        print('✓ Informe PDF generado con LaTeX en:', os.path.join(informe_dir, 'informe_happy_computing.pdf'))
+    else:
+        print('Error al compilar LaTeX. Se generó el archivo .tex en:', tex_file)
+        print(log)
 
 
 if __name__ == '__main__':

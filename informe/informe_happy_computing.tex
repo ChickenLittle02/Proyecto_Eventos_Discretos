@@ -1,0 +1,177 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{xcolor}
+\title{Informe de Simulación - Happy Computing}
+\author{Rubén Martínez Rojas \\ Ciencias de la Computación \\ Grupo C-311}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section*{Datos del estudiante}
+\begin{itemize}
+  \item Estudiante: Rubén Martínez Rojas
+  \item Carrera: Ciencias de la Computación
+  \item Grupo: C-311
+  \item Tema Seleccionado: \#4 - Happy Computing
+  \item Orden del Problema: 4
+\end{itemize}
+
+\section{Introducción}
+Este informe presenta los resultados de una simulación de eventos discretos para el problema ``Happy Computing'', un taller de reparación y venta de equipos informáticos. El objetivo es estimar la ganancia esperada en una jornada laboral de 8 horas, considerando múltiples tipos de servicios y recursos limitados.
+
+\section{Descripción del sistema}
+Happy Computing es un taller de reparaciones electrónicas. Las actividades realizadas son:
+\begin{enumerate}
+  \item Reparación por garantía (Gratis)
+  \item Reparación fuera de garantía (\$350)
+  \item Cambio de equipo (\$500)
+  \item Venta de equipos reparados (\$750)
+\end{enumerate}
+
+El taller cuenta con tres tipos de empleados:
+\begin{itemize}
+  \item Vendedor
+  \item Técnico
+  \item Técnico especializado
+\end{itemize}
+
+Cuando un cliente llega, primero es atendido por un vendedor. Si el servicio requiere reparación (tipo 1 o 2), el cliente luego debe ser atendido por un técnico. Si el servicio es un cambio de equipo (tipo 3), el cliente debe ser atendido por un técnico especializado. Si todos los empleados que pueden atender al cliente están ocupados, se establece una cola para su servicio.
+
+Un técnico especializado solo realizará reparaciones si no hay ningún cliente que desee un cambio de equipo en la cola.
+
+El taller opera con:
+\begin{itemize}
+  \item 2 vendedores
+  \item 3 técnicos ordinarios
+  \item 1 técnico especializado
+\end{itemize}
+
+La jornada laboral se modela con una simulación de 8 horas (480 minutos).
+
+\section{Modelo de simulación}
+\begin{itemize}
+  \item Llegadas: proceso de Poisson con tiempo entre llegadas exponencial de media 20 minutos.
+  \item Tipo de servicio: probabilidades fijas por tipo.
+  \item Atención de vendedor: distribución normal N(5, 2).
+  \item Reparación por técnico ordinario: exponencial con media 20 minutos.
+  \item Cambio de equipo por técnico especializado: exponencial con media 15 minutos.
+\end{itemize}
+
+Flujo de cliente:
+\begin{itemize}
+  \item Llegada $\rightarrow$ Vendedor $\rightarrow$ Técnico (si reparación) $\rightarrow$ Fin
+  \item Llegada $\rightarrow$ Vendedor $\rightarrow$ Técnico especializado (si cambio de equipo) $\rightarrow$ Fin
+\end{itemize}
+
+\section{Resultados}
+\subsection{Resumen de ganancias}
+\begin{tabular}{lr}
+\toprule
+Métrica & Valor \\
+\midrule
+Promedio & \$ 6426.50 \\
+Desv. estándar & \$ 1799.82 \\
+IC 95\% & [\$ 6073.73 , \$ 6779.27 ] \\
+Mínimo & \$ 2550.00 \\
+Máximo & \$ 11200.00 \\
+Mediana & \$ 6175.00 \\
+Q1 (25\%) & \$ 5250.00 \\
+Q3 (75\%) & \$ 7775.00 \\
+\bottomrule
+\end{tabular}
+
+\subsection{Clientes servidos}
+\begin{tabular}{lr}
+\toprule
+Métrica & Valor \\
+\midrule
+Promedio & 23.1 \\
+Desv. estándar & 4.43 \\
+Mínimo & 14 \\
+Máximo & 39 \\
+Mediana & 23.0 \\
+\bottomrule
+\end{tabular}
+
+\subsection{Análisis por tipo de servicio}
+\begin{tabular}{lrrr}
+\toprule
+Tipo de servicio & Clientes & Porcentaje & Ganancia \\
+\midrule
+Reparación Garantía & 1057 & 45.7\% & \$ 0 \\
+Reparación Sin Garantía & 609 & 26.3\% & \$ 213150 \\
+Cambio de Equipo & 226 & 9.8\% & \$ 113000 \\
+Venta de Reparados & 422 & 18.2\% & \$ 316500 \\
+\bottomrule
+\end{tabular}
+
+\subsection{Estadísticas multi-run}
+\begin{tabular}{lrrr}
+\toprule
+Métrica & Media & Desv. Est. & IC 95\% \\
+\midrule
+Ganancia promedio (\$) & \$ 6426.50 & \$ 1799.82 & [\$ 6073.73 , \$ 6779.27 ] \\
+Espera promedio (min) & 0.38 & 0.96 & [0.19 , 0.56 ] \\
+Tiempo total promedio (min) & 20.32 & 3.77 & [19.58 , 21.06 ] \\
+\bottomrule
+\end{tabular}
+
+\section{Visualizaciones}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{{happy_computing_analysis.png}}
+\caption{{Análisis global de ganancias y clientes.}}
+\end{figure}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{{service_type_analysis.png}}
+\caption{{Distribución por tipo de servicio.}}
+\end{figure}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{{multi_run_profit_convergence.png}}
+\caption{{Convergencia de la ganancia promedio en las corridas multi-run.}}
+\end{figure}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{{queue_evolution_analysis.png}}
+\caption{{Evolución de las colas en una corrida representativa.}}
+\end{figure}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{{wait_time_vs_arrival.png}}
+\caption{{Tiempo de espera vs. tiempo de llegada en la corrida con mayor espera promedio.}}
+\end{figure}
+
+
+\section{Consideraciones de ejecución}
+La generación del informe se realizó con 100 corridas independientes de 480 minutos cada una. Cada ejecución usa una semilla distinta para asegurar independencia y reproducibilidad de los escenarios generados.
+
+El análisis multi-run calcula medias muestrales, varianzas y el intervalo de confianza al 95\% para la ganancia, el tiempo de espera promedio y el tiempo total promedio en el sistema.
+
+La gráfica de convergencia muestra cómo se estabiliza la estimación de la ganancia promedio a medida que aumentan las corridas.
+
+Código fuente disponible en \url{https://github.com/ChickenLittle02/Proyecto_Eventos_Discretos}.
+
+\section{Conclusiones}
+A partir de 100 simulaciones, la ganancia promedio por jornada de 8 horas se estimó en \$ 6426.50 con un intervalo de confianza del 95\% de [\$ 6073.73 , \$ 6779.27 ]. El modelo permite estimar mejor la asignación de vendedores y técnicos para gestionar colas y mejorar la eficiencia operativa.
+
+\end{document}
